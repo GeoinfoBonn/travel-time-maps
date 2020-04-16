@@ -22,7 +22,6 @@ import graph.generic.WeightedArcData;
 import graph.routing.Dijkstra;
 import graph.types.Colored;
 import graph.types.ColoredNode;
-import graph.types.DistanceData;
 import graph.types.GeofabrikData;
 import graph.types.WalkingData;
 import isochrone.IsochroneCreator;
@@ -348,14 +347,6 @@ public class NodeInserter<V extends Point2D, E extends WalkingData> {
 
 		E splitArcData(E data, double fraction);
 	}
-
-	public static ArcDataSplitter<DistanceData> DISTANCE_SPLITTER = new ArcDataSplitter<>() {
-
-		@Override
-		public DistanceData splitArcData(DistanceData data, double fraction) {
-			return new DistanceData(data.getValue() * fraction);
-		}
-	};
 
 	public static final ArcDataSplitter<GeofabrikData> GEOFABRIK_SPLITTER = new ArcDataSplitter<>() {
 

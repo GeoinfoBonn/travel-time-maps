@@ -34,14 +34,13 @@ import tools.Stopwatch;
 import viewer.IsochronePanel;
 import viewer.ResultFrame;
 
-public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_road extends WalkingData>
-		implements Router<Point2D, E> {
+public class MultiModalRouter<E_iso extends IsoEdge, E_road extends WalkingData> implements Router<Point2D, E_road> {
 
 	private int numNodesRoad;
 
 	private DiGraph<IsoVertex, IsoEdge> routingGraph;
-	private DiGraph<ColoredNode, E> coloredGraph;
-	private List<DiGraphNode<ColoredNode, E>> splitNodes;
+	private DiGraph<ColoredNode, E_road> coloredGraph;
+	private List<DiGraphNode<ColoredNode, E_road>> splitNodes;
 
 	private Dijkstra<IsoVertex, IsoEdge> dijkstra;
 	private NodeIterator<IsoVertex, IsoEdge> it;
@@ -49,18 +48,18 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 	private SplitVisitor visit;
 
 	private long starttime;
-	private DiGraphNode<ColoredNode, E> lastSource;
+	private DiGraphNode<ColoredNode, E_road> lastSource;
 
 	Map<DiGraphNode<Point2D, E_road>, DiGraphNode<IsoVertex, IsoEdge>> road2routing;
-	Map<DiGraphNode<IsoVertex, IsoEdge>, DiGraphNode<ColoredNode, E>> routing2color;
+	Map<DiGraphNode<IsoVertex, IsoEdge>, DiGraphNode<ColoredNode, E_road>> routing2color;
 
 	// maps to dynamically add arcs to next transfer node
 	private final HashMap<Integer, LinkedList<DiGraphNode<IsoVertex, IsoEdge>>> transferNodes;
 	private final HashMap<Integer, Integer> transferTimes;
 
-	Factory<E, E_iso, E_road> factory;
+	Factory<E_iso, E_road> factory;
 
-	public MultiModalRouter(RoadGraph<Point2D, E_road> roadGraph, File gtfsDirectory, Factory<E, E_iso, E_road> factory)
+	public MultiModalRouter(RoadGraph<Point2D, E_road> roadGraph, File gtfsDirectory, Factory<E_iso, E_road> factory)
 			throws IllegalParametersException, Exception {
 		this.factory = factory;
 		numNodesRoad = roadGraph.n();
@@ -99,7 +98,7 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 		routing2color = new HashMap<>();
 
 		DiGraphNode<IsoVertex, IsoEdge> routingGraphNode;
-		DiGraphNode<ColoredNode, E> coloredGraphNode;
+		DiGraphNode<ColoredNode, E_road> coloredGraphNode;
 		for (DiGraphNode<Point2D, E_road> node : roadGraph.getNodes()) {
 			routingGraphNode = routingGraph.addNode(new RoadNode(node.getNodeData()));
 			coloredGraphNode = coloredGraph.addNode(new ColoredNode(node.getNodeData()));
@@ -109,7 +108,7 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 		}
 
 		DiGraphNode<IsoVertex, IsoEdge> routingGraphSource, routingGraphTarget;
-		DiGraphNode<ColoredNode, E> coloredGraphSource, coloredGraphTarget;
+		DiGraphNode<ColoredNode, E_road> coloredGraphSource, coloredGraphTarget;
 		for (DiGraphArc<Point2D, E_road> arc : roadGraph.getArcs()) {
 			routingGraphSource = road2routing.get(arc.getSource());
 			routingGraphTarget = road2routing.get(arc.getTarget());
@@ -128,7 +127,7 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 	}
 
 	@Override
-	public void run(DiGraphNode<Point2D, E> originalSource, long maxTime, long bufferTime) {
+	public void run(DiGraphNode<Point2D, E_road> originalSource, long maxTime, long bufferTime) {
 		long totalTime = maxTime + bufferTime;
 
 		DiGraphNode<IsoVertex, IsoEdge> source = road2routing.get(originalSource);
@@ -173,7 +172,7 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 	}
 
 	@Override
-	public void run(DiGraphNode<Point2D, E> originalSource, int maxDistance) {
+	public void run(DiGraphNode<Point2D, E_road> originalSource, int maxDistance) {
 		this.run(originalSource, maxDistance, 0);
 	}
 
@@ -188,13 +187,13 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 		if (bufferTime == 0)
 			return;
 
-		for (DiGraphNode<ColoredNode, E> splitNode : splitNodes) {
+		for (DiGraphNode<ColoredNode, E_road> splitNode : splitNodes) {
 			blueToRedRecursive(splitNode);
 		}
 
 		int color;
 		double remTime;
-		for (DiGraphNode<ColoredNode, E> node : coloredGraph.getNodes()) {
+		for (DiGraphNode<ColoredNode, E_road> node : coloredGraph.getNodes()) {
 			color = node.getNodeData().getColor();
 			remTime = node.getNodeData().getRemainingTime() - bufferTime;
 			if (node.getNodeData().getColor() == Colored.BUFFER) {
@@ -219,11 +218,11 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 	 * 
 	 * @param node Starting node
 	 */
-	private void blueToRedRecursive(DiGraphNode<ColoredNode, E> node) {
+	private void blueToRedRecursive(DiGraphNode<ColoredNode, E_road> node) {
 		if (node.getNodeData().getColor() == Colored.REACHABLE)
 			return;
 		node.getNodeData().setReachability(Colored.UNREACHABLE, node.getNodeData().getRemainingTime());
-		for (DiGraphArc<ColoredNode, E> a : node.getOutgoingArcs()) {
+		for (DiGraphArc<ColoredNode, E_road> a : node.getOutgoingArcs()) {
 			if (a.getTarget().getNodeData().getColor() == Colored.BUFFER)
 				blueToRedRecursive(a.getTarget());
 		}
@@ -237,7 +236,7 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 		ListLayer splitNodeReachableLayer = new ListLayer(AbstractMain.COLOR_STYLE.reachable());
 
 		if (splitNodes != null)
-			for (DiGraphNode<ColoredNode, E> splitnode : splitNodes) {
+			for (DiGraphNode<ColoredNode, E_road> splitnode : splitNodes) {
 				if (splitnode.getNodeData().getColor() == Colored.BUFFER) {
 					splitNodeBufferLayer.add(new PointMapObject(splitnode.getNodeData()));
 				} else if (splitnode.getNodeData().getColor() == Colored.REACHABLE) {
@@ -265,7 +264,7 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 		ListLayer bufferLayer = new ListLayer(AbstractMain.COLOR_STYLE.buffer());
 
 		MapObject mo;
-		for (DiGraphNode<ColoredNode, E> node : coloredGraph.getNodes()) {
+		for (DiGraphNode<ColoredNode, E_road> node : coloredGraph.getNodes()) {
 			mo = new PointMapObject(node.getNodeData());
 			if (node.getNodeData().getColor() == Colored.REACHABLE)
 				reachableLayer.add(mo);
@@ -286,17 +285,17 @@ public class MultiModalRouter<E extends WalkingData, E_iso extends IsoEdge, E_ro
 	}
 
 	@Override
-	public DiGraphNode<ColoredNode, E> getLastSource() {
+	public DiGraphNode<ColoredNode, E_road> getLastSource() {
 		return lastSource;
 	}
 
 	@Override
-	public List<DiGraphNode<ColoredNode, E>> getSplitNodes() {
+	public List<DiGraphNode<ColoredNode, E_road>> getSplitNodes() {
 		return splitNodes;
 	}
 
 	@Override
-	public DiGraph<ColoredNode, E> getColoredGraph() {
+	public DiGraph<ColoredNode, E_road> getColoredGraph() {
 		return coloredGraph;
 	}
 

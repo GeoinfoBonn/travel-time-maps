@@ -63,6 +63,12 @@ import viewer.IsochronePanel;
 import viewer.PolygonMapObject;
 import viewer.ResultFrame;
 
+/**
+ * Class to create travel-time maps for multimodal transportation.
+ * 
+ * @author Axel Forsch
+ *
+ */
 public class IsochroneCreator {
 
 	private RoadGraph<Point2D, GeofabrikData> roadGraph;
@@ -82,10 +88,13 @@ public class IsochroneCreator {
 	private IdGenerator idGenerator;
 
 	/**
-	 * Creates an instance of the IsochroneCreator.
+	 * Creates an instance of the IsochroneCreator, given the location of the input
+	 * data files. For the road network, an ESRI line-feature shapefile is needed,
+	 * while for the public transportation data a directory containing all the files
+	 * of the GTFS-specification is needed.
 	 * 
-	 * @param roadShape
-	 * @param gtfsDir
+	 * @param roadShape ESRI line-feature shapefile containing the road network
+	 * @param gtfsDir   GTFS directory of the public transportation data
 	 * @throws IllegalParametersException
 	 * @throws Exception
 	 */
@@ -95,7 +104,7 @@ public class IsochroneCreator {
 		loadRoadGraph(roadShape);
 
 		if (AbstractMain.FILTER_ROADS > 0) {
-			RoadGraph<Point2D, GeofabrikData> filtered = filterRoadGraph();
+			RoadGraph<Point2D, GeofabrikData> filtered = filterRoadGraph(AbstractMain.FILTER_ROADS);
 			planarizeGraph(filtered);
 		} else {
 			planarizeGraph(roadGraph);
@@ -104,6 +113,12 @@ public class IsochroneCreator {
 		router = new MultiModalRouter<>(roadGraph, gtfsDir, Router.GEOFABRIK_FACTORY);
 	}
 
+	/**
+	 * Loads the line-feature shapefile into a directed graph. The graph is reduced
+	 * to its biggest connected component by removing all topological islands.
+	 * 
+	 * @param roadShape ESRI line-feature shapefile containing the road network
+	 */
 	private void loadRoadGraph(File roadShape) {
 		try {
 			GeofabrikFactory gff = new GeofabrikFactory();
@@ -114,7 +129,6 @@ public class IsochroneCreator {
 				AbstractMain.GUI.initializeRoadLayer(roadGraph);
 				IsochronePanel.showRoadGraph(AbstractMain.GUI, "Road Graph");
 			}
-
 		} catch (IllegalParametersException e) {
 			System.err.println("IllegalParametersException while loading road shapefile.");
 			e.printStackTrace();
@@ -124,8 +138,20 @@ public class IsochroneCreator {
 		}
 	}
 
+	/**
+	 * Filters the road graph for smaller scales by removing minor type roads. This
+	 * method can only be used if the road graph's edge data is of type
+	 * {@link GeofabrikData}. The higher
+	 * {@link IsochroneCreator#filterRoadGraph(int) degree} is chosen, the more
+	 * roads are filtered out.
+	 * 
+	 * @param degree level of filtering, the higher the <cpde>degree</code> the more
+	 *               roads are removed
+	 * 
+	 * @return road graph with all minor roads reduced
+	 */
 	@SuppressWarnings("unchecked")
-	private RoadGraph<Point2D, GeofabrikData> filterRoadGraph() {
+	private RoadGraph<Point2D, GeofabrikData> filterRoadGraph(int degree) {
 
 		ArcFilter<GeofabrikData> filter_01 = new ArcFilter<GeofabrikData>() {
 			@Override
@@ -168,9 +194,9 @@ public class IsochroneCreator {
 		};
 
 		ArcFilter<GeofabrikData> filter = null;
-		if (AbstractMain.FILTER_ROADS == 1)
+		if (degree == 1)
 			filter = filter_01;
-		if (AbstractMain.FILTER_ROADS == 2)
+		if (degree == 2)
 			filter = GraphFilterer.joinedArcFilter(new ArcFilter[] { filter_01, filter_02 });
 
 		RoadGraph<Point2D, GeofabrikData> filtered = GraphFilterer.filterArcs(roadGraph, filter, new GraphFactory<>() {
