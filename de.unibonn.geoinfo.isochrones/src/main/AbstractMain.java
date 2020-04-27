@@ -23,11 +23,11 @@ public abstract class AbstractMain {
 	public static boolean VERBOSE = false;
 	public static boolean SHOW_RESULTS = false;
 
-	public static final int LOG_LEVEL = 2;
+	public static final int LOG_LEVEL = 1;
 
 	public static int[] START_IDS;
 	public static long STARTTIME = Long.valueOf(35999);
-	public static Long[] TIMEZONES = { 1800l };
+	public static Long[] TIMEZONES = { 600l };
 	public static boolean INDIVIDUAL_RESULTS = false;
 
 	public static boolean USE_PARALLEL_PROCESSING = true;
@@ -117,12 +117,11 @@ public abstract class AbstractMain {
 				}
 			};
 		}
-
 	}
 
 	protected static void checkArguments(String[] args, String[] obligatory) {
 		for (String identifier : obligatory) {
-			if (getOptionalArg(args, identifier) == null) {
+			if (getOptionalArg(args, identifier).isEmpty()) {
 				throw new InvalidParameterException(identifier + " must be set");
 			}
 		}

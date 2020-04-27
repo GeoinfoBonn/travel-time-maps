@@ -12,12 +12,12 @@ import com.vividsolutions.jump.io.IllegalParametersException;
 
 import isochrone.BoundaryFace;
 import isochrone.FaceIdentifier.FaceFactory;
-import viewer.ResultFrame;
 import isochrone.IsoFace;
 import isochrone.IsochroneCreator;
 import isochrone.MinimumDistFace;
 import isochrone.OctilinearFace;
 import isochrone.Timezone;
+import viewer.ResultFrame;
 
 public class Main extends AbstractMain {
 
@@ -37,8 +37,7 @@ public class Main extends AbstractMain {
 		INDIVIDUAL_RESULTS = containsOptionalArg(args, IDENTIFIER.CALCULATE_INDIVIDUAL_ZONES);
 		USE_PARALLEL_PROCESSING = !containsOptionalArg(args, IDENTIFIER.DISABLE_PARALLEL_PROCESSING);
 
-		checkArguments(args,
-				new String[] { IDENTIFIER.ROAD_DATA_PATH, IDENTIFIER.GTFS_DATA_PATH, IDENTIFIER.START_ID });
+		checkArguments(args, new String[] { IDENTIFIER.ROAD_DATA_PATH, IDENTIFIER.GTFS_DATA_PATH });
 		ROAD = new File(getOptionalArg(args, IDENTIFIER.ROAD_DATA_PATH).get());
 		GTFS = new File(getOptionalArg(args, IDENTIFIER.GTFS_DATA_PATH).get());
 
@@ -157,13 +156,6 @@ public class Main extends AbstractMain {
 				}
 			});
 
-		logConfig(args);
-
-		File startpoints = new File(OUTPUT_DIRECTORY, "startpoints.csv");
-		if (startpoints.exists())
-			if (startpoints.delete() && AbstractMain.VERBOSE)
-				System.out.println("Deleted previous startpoint file.");
-
 		IsochroneCreator creator = new IsochroneCreator(ROAD, GTFS);
 
 		if (FIND_NODE_FILE != null) {
@@ -171,74 +163,83 @@ public class Main extends AbstractMain {
 			System.exit(0);
 		}
 
-		OutputWriter ow = new OutputWriter(STATS_DIRECTORY);
-		ResultSet rs;
+		if (START_IDS != null) {
+			logConfig(args);
+			File startpoints = new File(OUTPUT_DIRECTORY, "startpoints.csv");
+			if (startpoints.exists())
+				if (startpoints.delete() && AbstractMain.VERBOSE)
+					System.out.println("Deleted previous startpoint file.");
 
-		long bufferTime;
-		Timezone<Point2D> timezone;
-		FaceFactory<?> faceFactory;
+			OutputWriter ow = new OutputWriter(STATS_DIRECTORY);
+			ResultSet rs;
 
-		int originalMaxDoR = MAX_DoR;
-		double originalNonOctiMalus = NON_OCTI_MALUS;
-		boolean originalWeightTurns = WEIGHT_TURNS;
+			long bufferTime;
+			Timezone<Point2D> timezone;
+			FaceFactory<?> faceFactory;
 
-		for (int startId : START_IDS) {
-			for (byte type : VISUALIZATION_TYPES) {
-				switch (type) {
-				case OCTILINEAR:
-					faceFactory = OctilinearFace.FACTORY;
-					MAX_DoR = originalMaxDoR;
-					NON_OCTI_MALUS = originalNonOctiMalus;
-					WEIGHT_TURNS = originalWeightTurns;
-					break;
-				case BOUNDARY:
-					faceFactory = BoundaryFace.FACTORY;
-					MAX_DoR = -1;
-					NON_OCTI_MALUS = 1;
-					WEIGHT_TURNS = false;
-					break;
-				case MIN_LINK:
-					faceFactory = MinimumDistFace.FACTORY;
-					MAX_DoR = -1;
-					NON_OCTI_MALUS = 1;
-					WEIGHT_TURNS = false;
-					break;
-				case TIMED_BUFFER:
-					faceFactory = null;
-					break;
-				default:
-					System.err.println("Unknown visualization type! " + type);
-					continue;
-				}
-				for (long time : TIMEZONES) {
-					rs = new ResultSet(RunConfig.getCurrentRunConfig(startId, time, type));
-					try {
-						bufferTime = (long) (time * DILATION_FACTOR) + DILATION_VALUE;
+			int originalMaxDoR = MAX_DoR;
+			double originalNonOctiMalus = NON_OCTI_MALUS;
+			boolean originalWeightTurns = WEIGHT_TURNS;
 
-						timezone = creator.createIsochrone(startId, STARTTIME, time, bufferTime, faceFactory);
-						rs.setStopwatch(creator.getLastTiming());
-						rs.setTimezone(timezone);
+			for (int startId : START_IDS) {
+				for (byte type : VISUALIZATION_TYPES) {
+					switch (type) {
+					case OCTILINEAR:
+						faceFactory = OctilinearFace.FACTORY;
+						MAX_DoR = originalMaxDoR;
+						NON_OCTI_MALUS = originalNonOctiMalus;
+						WEIGHT_TURNS = originalWeightTurns;
+						break;
+					case BOUNDARY:
+						faceFactory = BoundaryFace.FACTORY;
+						MAX_DoR = -1;
+						NON_OCTI_MALUS = 1;
+						WEIGHT_TURNS = false;
+						break;
+					case MIN_LINK:
+						faceFactory = MinimumDistFace.FACTORY;
+						MAX_DoR = -1;
+						NON_OCTI_MALUS = 1;
+						WEIGHT_TURNS = false;
+						break;
+					case TIMED_BUFFER:
+						faceFactory = null;
+						break;
+					default:
+						System.err.println("Unknown visualization type! " + type);
+						continue;
+					}
+					for (long time : TIMEZONES) {
+						rs = new ResultSet(RunConfig.getCurrentRunConfig(startId, time, type));
+						try {
+							bufferTime = (long) (time * DILATION_FACTOR) + DILATION_VALUE;
 
-						if (!AbstractMain.INDIVIDUAL_RESULTS)
-							IsoFace.setPolygonLimit(timezone);
+							timezone = creator.createIsochrone(startId, STARTTIME, time, bufferTime, faceFactory);
+							rs.setStopwatch(creator.getLastTiming());
+							rs.setTimezone(timezone);
 
-						ow.writeResult(rs);
-					} catch (Exception e) {
+							if (!AbstractMain.INDIVIDUAL_RESULTS)
+								IsoFace.setPolygonLimit(timezone);
+
+							ow.writeResult(rs);
+						} catch (Exception e) {
 //						rs.addToMessage(e.getMessage());
-						String message = "Error: " + type + ", " + startId + ", " + time + ", " + e.getMessage();
-						System.err.println(message);
-						System.out.println(message);
-						e.printStackTrace();
+							String message = "Error: " + type + ", " + startId + ", " + time + ", " + e.getMessage();
+							System.err.println(message);
+							System.out.println(message);
+							e.printStackTrace();
+						}
 					}
 				}
 			}
-		}
 
-		System.out.println(
-				"Done. Time needed for everything: " + (System.currentTimeMillis() - starttime) / 1000.0 + " seconds.");
+			System.out.println("Done. Time needed for everything: " + (System.currentTimeMillis() - starttime) / 1000.0
+					+ " seconds.");
+		}
 	}
 
 	public static void getRoadNodeIds(File positions, IsochroneCreator creator) {
+		System.out.println("Searching node indices:");
 		try (BufferedReader br = new BufferedReader(new FileReader(positions))) {
 			String line = br.readLine(); // header
 			String[] words;
@@ -248,7 +249,8 @@ public class Main extends AbstractMain {
 				position = new Point2D.Double(Double.parseDouble(words[0]), Double.parseDouble(words[1]));
 
 				var node = creator.getRoadNode(position);
-				node.ifPresent(x -> System.out.println(x.getId()));
+				node.ifPresentOrElse(x -> System.out.println("  found " + x.getId()),
+						() -> System.out.println("  node not found"));
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

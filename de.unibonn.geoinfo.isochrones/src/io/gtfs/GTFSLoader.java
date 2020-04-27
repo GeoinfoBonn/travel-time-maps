@@ -104,8 +104,10 @@ public class GTFSLoader {
 	 * @throws KeySizeException
 	 */
 	private void loadStop(File directory) throws ParseException, KeySizeException, KeyDuplicateException {
-		System.out.println();
-		System.out.println("Start loading stops");
+		if (AbstractMain.VERBOSE) {
+			System.out.println();
+			System.out.println("Start loading stops");
+		}
 		long starttime = System.currentTimeMillis();
 		// Create and fill KDTree
 		KDTree<DiGraphNode<IsoVertex, IsoEdge>> nextStreetNodeTree = new KDTree<>(2);
@@ -164,8 +166,10 @@ public class GTFSLoader {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Finished loading stops");
-		System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) / 1000 + "s");
+		if (AbstractMain.VERBOSE) {
+			System.out.println("Finished loading stops");
+			System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) / 1000 + "s");
+		}
 	}
 
 	/**
@@ -176,7 +180,8 @@ public class GTFSLoader {
 		long starttime = System.currentTimeMillis();
 		// Trips einlesen
 		try {
-			System.out.println("Start loading trips.");
+			if (AbstractMain.VERBOSE)
+				System.out.println("Start loading trips.");
 			FileReader fr = new FileReader(directory + "/trips.txt");
 			BufferedReader br = new BufferedReader(fr);
 			String currentLine;
@@ -194,8 +199,10 @@ public class GTFSLoader {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Number of trips loaded: " + this.trips.size());
-		System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		if (AbstractMain.VERBOSE) {
+			System.out.println("Number of trips loaded: " + this.trips.size());
+			System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		}
 	}
 
 	/**
@@ -206,7 +213,8 @@ public class GTFSLoader {
 		long starttime = System.currentTimeMillis();
 		// Trips einlesen
 		try {
-			System.out.println("Start loading routes.");
+			if (AbstractMain.VERBOSE)
+				System.out.println("Start loading routes.");
 			FileReader fr = new FileReader(directory + "/routes.txt");
 			BufferedReader br = new BufferedReader(fr);
 			String currentLine;
@@ -224,8 +232,10 @@ public class GTFSLoader {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Number of routes loaded: " + routes.size());
-		System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		if (AbstractMain.VERBOSE) {
+			System.out.println("Number of routes loaded: " + routes.size());
+			System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		}
 	}
 
 	/**
@@ -236,8 +246,10 @@ public class GTFSLoader {
 		long starttime = System.currentTimeMillis();
 		// Trips einlesen
 		try {
-			System.out.println();
-			System.out.println("Start loading calendar.");
+			if (AbstractMain.VERBOSE) {
+				System.out.println();
+				System.out.println("Start loading calendar.");
+			}
 			FileReader fr = new FileReader(directory + "/calendar.txt");
 			BufferedReader br = new BufferedReader(fr);
 			String currentLine;
@@ -260,8 +272,10 @@ public class GTFSLoader {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Number of calendars loaded: " + this.calendar.size());
-		System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		if (AbstractMain.VERBOSE) {
+			System.out.println("Number of calendars loaded: " + this.calendar.size());
+			System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		}
 	}
 
 	/**
@@ -273,8 +287,10 @@ public class GTFSLoader {
 	 * @author Peter
 	 */
 	private void loadStopTimes(File directory) {
-		System.out.println();
-		System.out.println("Start loading stop times.");
+		if (AbstractMain.VERBOSE) {
+			System.out.println();
+			System.out.println("Start loading stop times.");
+		}
 		long starttime = System.currentTimeMillis();
 		try (BufferedReader br = new BufferedReader(new FileReader(directory + "/stop_times.txt"))) {
 			String currentLine;
@@ -313,13 +329,16 @@ public class GTFSLoader {
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) / 1000 + "s");
-		System.out.println();
-		System.out.println("Sortiere Nodes");
+		if (AbstractMain.VERBOSE) {
+			System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) / 1000 + "s");
+			System.out.println();
+			System.out.println("Sortiere Nodes");
+		}
 		starttime = System.currentTimeMillis();
 		this.sortList(this.arrivalNodes);
 		this.sortList(this.transferNodes);
-		System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		if (AbstractMain.VERBOSE)
+			System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
 	}
 
 	private void erstelleTrip(String tripId, LinkedList<Date> arrivalTime, LinkedList<Date> departureTime,
@@ -421,8 +440,10 @@ public class GTFSLoader {
 	 * @throws ParseException
 	 */
 	private void loadTransfers(File directory) throws ParseException {
-		System.out.println();
-		System.out.println("Start loading transfers.");
+		if (AbstractMain.VERBOSE) {
+			System.out.println();
+			System.out.println("Start loading transfers.");
+		}
 		long starttime = System.currentTimeMillis();
 		int counterTransfers = 0;
 		try (BufferedReader br = new BufferedReader(new FileReader(directory + "/transfers.txt"))) {
@@ -488,8 +509,10 @@ public class GTFSLoader {
 				}
 
 			}
-			System.out.println("Number of Arrival-Transfer-edges: " + counterTransfers);
-			System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+			if (AbstractMain.VERBOSE) {
+				System.out.println("Number of Arrival-Transfer-edges: " + counterTransfers);
+				System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -533,8 +556,10 @@ public class GTFSLoader {
 				counterTransfer++;
 			}
 		}
-		System.out.println("Number of transfer-transfer-edges: " + counterTransfer);
-		System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		if (AbstractMain.VERBOSE) {
+			System.out.println("Number of transfer-transfer-edges: " + counterTransfer);
+			System.out.println("Elapsed time: " + (System.currentTimeMillis() - starttime) + "ms");
+		}
 	}
 
 	/**

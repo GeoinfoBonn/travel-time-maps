@@ -26,6 +26,7 @@ import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.geom.TopologyException;
 import com.vividsolutions.jump.io.IllegalParametersException;
 
+import DCEL.Dcel;
 import gisviewer.LineMapObject;
 import gisviewer.ListLayer;
 import gisviewer.MapObject;
@@ -77,6 +78,7 @@ public class IsochroneCreator {
 	private KmlPolygon kml_saver;
 
 	private String lastType;
+	private long lastTime;
 	private Stopwatch lastTiming;
 
 	private static ListLayer reachableEdges;
@@ -228,7 +230,21 @@ public class IsochroneCreator {
 		return filtered;
 	}
 
-	private void planarizeGraph(RoadGraph<Point2D, GeofabrikData> graphToPlanarize) {
+	/**
+	 * Planarizes the given graph such that no two edges cross without the crossing
+	 * point being noded. To that extend, additional nodes are inserted at non-noded
+	 * edge intersections.
+	 * 
+	 * To the point being, two methods for planarization exists: one based on
+	 * JTS-union and one based on an own implementation of a sweep-line algorithm.
+	 * Unfortunatelym, both methods suffer from inconsistencies. The optional
+	 * parameter <code>useUnion</code> can be used to toggle between both methods.
+	 * 
+	 * @param graphToPlanarize (non-planar) input graph to be planarized
+	 * @param useUnion         if true, JTS-union is used to planarize, else a
+	 *                         sweep-line (default)
+	 */
+	private void planarizeGraph(RoadGraph<Point2D, GeofabrikData> graphToPlanarize, boolean useUnion) {
 		long start = 0;
 		if (AbstractMain.VERBOSE) {
 			System.out.println("Starting planarization...");
@@ -249,7 +265,6 @@ public class IsochroneCreator {
 
 		};
 
-		boolean useUnion = false;
 		Planarizer<Point2D, GeofabrikData> planarizer;
 		if (useUnion)
 			planarizer = new UnionPlanarizer<>(planFac, true);
@@ -271,8 +286,29 @@ public class IsochroneCreator {
 		}
 	}
 
+	/**
+	 * Performs the planarization (see
+	 * {@link IsochroneCreator#planarizeGraph(RoadGraph, boolean)}) using the
+	 * sweep-line method.
+	 * 
+	 * @param graphToPlanarize (non-planar) input graph to be planarized
+	 */
+	private void planarizeGraph(RoadGraph<Point2D, GeofabrikData> graphToPlanarize) {
+		planarizeGraph(graphToPlanarize, false);
+	}
+
+	/**
+	 * Performs the routing step of the isochrone creation.
+	 * 
+	 * @param startid    id of the road node to start the travel
+	 * @param starttime  start time in seconds after Monday, 1am
+	 * @param time       travel time for the isochrone in seconds
+	 * @param bufferTime buffer time for closing operation in seconds
+	 * @param sw         stop watch to time the algorithm
+	 */
 	private void route(int startid, long starttime, long time, long bufferTime, Stopwatch sw) {
 		long routeTime = System.currentTimeMillis();
+		lastTime = time;
 		if (AbstractMain.VERBOSE)
 			System.out.println("Computing traveltimes...");
 		DiGraphNode<Point2D, GeofabrikData> roadSource = roadGraph.getNode(startid);
@@ -285,6 +321,16 @@ public class IsochroneCreator {
 			System.out.println("Travel times computed. (" + routeTime / 1000.0 + "s)");
 	}
 
+	/**
+	 * Stores the result of the routing in a planar colored graph, representing the
+	 * road network: each node is assigned a color representing its reachability.
+	 * Edges of the road graph are split at points where the remaining travel time
+	 * is zero, inserting a node there. That way, node and edge coloring can be
+	 * treated equivalently.
+	 * 
+	 * @param sw stop watch to time the algorithm
+	 * @return road graph with colored nodes
+	 */
 	private PlanarGraph<ColoredNode, GeofabrikData> createColoredPlanarGraph(Stopwatch sw) {
 		long time = System.currentTimeMillis();
 		if (AbstractMain.VERBOSE)
@@ -325,6 +371,15 @@ public class IsochroneCreator {
 		return result;
 	}
 
+	/**
+	 * Fixes the color of all nodes at the bounding box of the road network to
+	 * unreachable in order to avoid the reachable area touching the outer face, as
+	 * the {@link Dcel} creation fails for these cases.
+	 * 
+	 * FIXME outer face errors still occur, needs checking
+	 * 
+	 * @param graph colored graph for which the outer nodes should be fixed
+	 */
 	private void fixOuterColorAsUnreachable(PlanarGraph<ColoredNode, GeofabrikData> graph) {
 		ColoredNode data;
 		Envelope env = graph.getEnvelope();
@@ -356,6 +411,17 @@ public class IsochroneCreator {
 		}
 	}
 
+	/**
+	 * Creates a single-travel-time time zone for a visualization type operating on
+	 * a per-face basis. The visualization type is defined by the
+	 * <code>factory</code>, see {@link OctilinearFace#FACTORY} or
+	 * {@link MinimumDistFace#FACTORY}.
+	 * 
+	 * @param planarColoredGraph planar, colored road graph
+	 * @param factory            factory for the visualization type
+	 * @param sw                 stop watch to time the algorithm
+	 * @return time zone for the last routing result
+	 */
 	private Timezone<Point2D> createTimezoneFaces(PlanarGraph<ColoredNode, GeofabrikData> planarColoredGraph,
 			FaceFactory<?> factory, Stopwatch sw) {
 		FaceIdentifier<?, GeofabrikData> faceIdentifier = new FaceIdentifier<>(planarColoredGraph, sw);
@@ -411,6 +477,13 @@ public class IsochroneCreator {
 		return timezone;
 	}
 
+	/**
+	 * Creates a single-travel-time time zone for the temporal buffer visualization.
+	 * 
+	 * @param planarColoredGraph planar, colored road graph
+	 * @param sw                 stop watch to time the algorithm
+	 * @return time zone for the last routing result
+	 */
 	private Timezone<Point2D> createTimezoneBuffer(PlanarGraph<ColoredNode, GeofabrikData> planarColoredGraph,
 			Stopwatch sw) {
 
@@ -490,17 +563,37 @@ public class IsochroneCreator {
 		return zone;
 	}
 
-	private Timezone<Point2D> createTimezone(PlanarGraph<ColoredNode, GeofabrikData> planarColoredGraph, long time,
+	/**
+	 * Creates a single-travel-time time zone. The visualization type is defined by
+	 * the <code>factory</code>, see {@link OctilinearFace#FACTORY} or
+	 * {@link MinimumDistFace#FACTORY}. If <code>factory</code> is
+	 * <code>null</code>, the temporal buffer visualization is used.
+	 * 
+	 * @param planarColoredGraph planar, colored road graph
+	 * @param factory            factory for the visualization type
+	 * @param sw                 stop watch to time the algorithm
+	 * @return time zone for the last routing result
+	 */
+	private Timezone<Point2D> createTimezone(PlanarGraph<ColoredNode, GeofabrikData> planarColoredGraph,
 			FaceFactory<?> factory, Stopwatch sw) {
 		Timezone<Point2D> timezone;
 		if (factory != null)
 			timezone = createTimezoneFaces(planarColoredGraph, factory, sw);
 		else
 			timezone = createTimezoneBuffer(planarColoredGraph, sw);
-		timezone.setTime(time);
+		timezone.setTime(lastTime);
 		return timezone;
 	}
 
+	/**
+	 * 
+	 * @param startid
+	 * @param starttime
+	 * @param time
+	 * @param bufferTime
+	 * @param factory
+	 * @return
+	 */
 	public Timezone<Point2D> createIsochrone(int startid, long starttime, long time, long bufferTime,
 			FaceFactory<?> factory) {
 		currentOutputDir = new File(AbstractMain.OUTPUT_DIRECTORY + File.separator + startid + File.separator);
@@ -537,12 +630,12 @@ public class IsochroneCreator {
 
 		PlanarGraph<ColoredNode, GeofabrikData> planarColoredGraph = createColoredPlanarGraph(sw);
 
-		Timezone<Point2D> timezone = createTimezone(planarColoredGraph, time, factory, sw);
+		Timezone<Point2D> timezone = createTimezone(planarColoredGraph, factory, sw);
 		timezone.setType(lastType);
 
 		IsochronePanel endresultPanel = null;
 		if (AbstractMain.SHOW_RESULTS)
-			endresultPanel = showEndresult(AbstractMain.GUI, "Result " + lastType + " " + time, planarColoredGraph,
+			endresultPanel = showEndresult(AbstractMain.GUI, "Result " + lastType + " " + lastTime, planarColoredGraph,
 					timezone);
 
 		try {
@@ -565,7 +658,7 @@ public class IsochroneCreator {
 			kmlDir = failDir;
 		}
 		kml_saver = new KmlPolygon(
-				kmlDir + File.separator + "Iso" + lastType + "_time_" + String.format("%05d", time) + "s");
+				kmlDir + File.separator + "Iso" + lastType + "_time_" + String.format("%05d", lastTime) + "s");
 		kml_saver.saveSingleZone(timezone);
 
 		// save timing
@@ -933,6 +1026,6 @@ public class IsochroneCreator {
 	}
 
 	public Optional<DiGraphNode<Point2D, GeofabrikData>> getRoadNode(Point2D location) {
-		return Optional.ofNullable(roadGraph.getDiGraphNode(location, 5));
+		return Optional.ofNullable(roadGraph.getDiGraphNode(location, 15));
 	}
 }

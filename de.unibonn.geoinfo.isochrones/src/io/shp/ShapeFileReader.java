@@ -107,8 +107,11 @@ public class ShapeFileReader {
 				biggestList = a;
 			}
 		}
-		System.out.println("Connected components found: " + result.size());
-		System.out.println("Size of biggest component: " + biggestList.size());
+
+		if (AbstractMain.VERBOSE) {
+			System.out.println("Connected components found: " + result.size());
+			System.out.println("Size of biggest component: " + biggestList.size());
+		}
 
 		HashSet<DiGraphNode<V, E>> nodesToBeRemoved = new HashSet<>(g.getNodes());
 		for (int i : biggestList) {
