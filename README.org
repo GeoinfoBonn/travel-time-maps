@@ -18,14 +18,6 @@ In this document we will explain the basic features of our prototype
    software. If you encounter any bugs or have feedback on the
    implementation feel free to contact me using [[mailto:forsch@igg.uni-bonn.de][E-Mail]].
 
-##+CAPTION: Example output for Cologne-Westhoven
-##+ATTR_HTML: width="100px"
-[[#./fig/Westhoven.png]]
-#
-##+CAPTION: Example output for Siegburg
-##+ATTR_HTML: width="100px"
-[[#./fig/Siegburg.png]]
-
 * Using the code
 ** Setup
 The code is written in Java and structured into four *Project Jigsaw*
