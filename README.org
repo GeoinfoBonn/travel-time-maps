@@ -1,0 +1,175 @@
+#+TITLE: Automatic Generation of Travel-time Maps
+#+AUTHOR: Axel Forsch
+#+EMAIL:     (concat "forsch" at-sign "igg.uni-bonn.de")
+#+LANGUAGE:  en
+#+SETUPFILE: /home/axel/org/org-html-themes/setup/theme-readtheorg.setup
+
+* Introduction
+In this document we will explain the basic features of our prototype
+  implementation for the paper /Automatic generation of schematic
+  travel-time maps for multi-modal transportation/.  The focus will be
+  set on how to use to code to generate your own travel-time maps for
+  the given example data.
+** Disclaimer 
+   This software is only a prototype implementation and as such can
+   contain bugs and is not yet designed for everyday usage. In
+   particular, the software is not optimized regarding memory and RAM
+   usage. We recommend at least 6 GB of RAM for using theq
+   software. If you encounter any bugs or have feedback on the
+   implementation feel free to contact me using [[mailto:forsch@igg.uni-bonn.de][E-Mail]].
+
+* Using the code
+** Setup
+The code is written in Java and structured into four *Project Jigsaw*
+modules:
+- 1) =de.unibonn.geoinfo.isochrones= :: this module is the heart of the
+     implementation and contains all the algorithms for calculating
+     travel-times and visualizing time zones.
+- 2) =de.unibonn.geoinfo.gisviewer= :: this module contains a /Java Swing/
+     GUI for displaying maps, we use this to display the results of
+     the algorithms
+- 3) =de.unibonn.geoinfo.ipeio= :: this module contains code for
+     importing and exporting [[http://ipe.otfried.org/][Ipe]] files into the java programm (this is
+     used for creating small debug examples)
+- 4) =de.unibonn.geoinfo.util= :: this module contains utility functions
+     such as data structures and coorinate transformations
+To compile these classes, please refer to the [[https://openjdk.java.net/projects/jigsaw/][Project Jigsaw webpage]].
+Alternatively, a pre-compiled jar-file is included in the documents.
+
+** Running the code
+The source code contains the class =main.Main.java= which serves as the
+main class for running the code. The behavior of the program is
+controlled by command line arguments passed to this main class or the
+pre-compiled jar-file.  To run the program, navigate to the directory
+containing =traveltimes.jar= and execute the following comand:
+
+#+BEGIN_SRC sh
+java -jar traveltimes.jar -dr [path-to-road-shp] -dg [path-to-gtfs-dir] -s [id-of-startnode]
+#+END_SRC
+
+Shown are the three mandatory input parameters =-dr=, =-dg= and =-s= used to
+specify the path to the input data and the node index of the starting
+node in the road network for the travel-time map. To retrieve the node
+index for a specific location you have two options: the first option
+utilizes the GUI, for this leave away parameter =-s= and add parameter
+=-r= to shows the GUI without calculating a time-zone. Clicking on a
+location on the map displays the node index of the closest road node
+in the top left corner of the frame. The second option is to enter the
+coordinates of desired starting points in a csv-file with each line
+formatted as =x,y=, passing the file with parameter =-f=. Here is an
+example:
+
+#+BEGIN_SRC sh :dir /home/axel/Documents/002_Isochrones/travel-time_maps/docs/documentation/ :exports both :results output
+  java -jar traveltimes.jar -dr ./data/03_roadBornheim/BornheimUTM.shp -dg ./data/03_gtfsBornheim -f ./data/start_locations.csv
+#+END_SRC
+
+#+RESULTS:
+: Searching node indices:
+:   node not found
+:   found 27291
+
+Note that only nodes in a radius of 15 meters around the specified
+location are returned. For the given example the first location does
+not yield a valid node. To start a query from the second node, use =-s
+27291=.
+
+To enable the GUI to show results, use the flag =-r=. Otherwise results
+can only be inspected by opening the output files created.
+
+** List of all parameters
+
+| Identifier | Type      | Description     | Expected value  | Default value |
+|------------+-----------+-----------------+-----------------+------------|
+|            |           | <15>            | <15>            | <10>       |
+| -dr        | mandatory | Path to the shapefile containing the road network data. | string (file path) | -          |
+| -dg        | mandatory | Path to the directory containing the GTFS-data to be used as schedule for the public transportation network. | string (directory path) | -          |
+| -s         | mandatory | Index of the starting node. Multiple indices can be given seperated by comma (without spaces inbetween). | int or cs-list of int | -          |
+| -t         | optional  | Travel time in seconds for the time-zones. Multiple times can be given seperated by comma (w/o spaces). | int or cs-list of int | 600s       |
+| -lz n      | optional  | Creates =n= linear distributed time-zones using largest value of =-t= as maximum value.   | int             | -          |
+| -v         | flag      | Enables verbose output. | -               | -          |
+| -r         | flag      | Enable GUI to show results. | -               | -          |
+| -h         | flag      | Prints a help for all parameters. | -               | -          |
+| -d         | flag      | Enables debug mode. | -               | -          |
+| -i         | flag      | Calculates zones for different times individually (more stable, but can result in cluttered maps). | -               | -          |
+| -noPP      | flag      | Disables parallel processing (can increase stability, but increases running times). | -               | -          |
+| -type      | optional  | Visualization type for time-zones. Value: 0 - octilinear, 1 - boundary, 2 - minimum perimeter, 3 - buffer | int (0-3)       | 0          |
+| -o         | optional  | Output path to store results. | string (directory path) | current directory |
+| -os        | optional  | Output path for file containing statistics about all runs. | string (directory path) | current directory |
+| -st        | optional  | Starting time in seconds after Monday, 1am. | int (>0)        | 36000s \Rightarrow Mo, 11am |
+| -dil       | optional  | Apply closing. The value can be additive, e.g. +5s can be achieved by =-dil 5a= or multiplicative with =-dil 0.1m= | string (double + 'a' or 'm' | 0          |
+| -maxDoR    | optional  | Changes maximum degree of refinement. | int             | 32         |
+| -noIterDoR | flag      | Disables iteration for the degree of refinement. Always the maximum value is used. (not recommended) | -               | -          |
+| -filter    | optional  | Enables filtering of roads for smaller scales. Currently there are 3 degrees defined: 0 (no filter), 1 and 2. | int (0-2)       | 0          |
+| -tbf       | optional  | Defines the (assumed) fraction of the off-road speed of the on-road-speed. | double (0-1)    | 0.5        |
+| -km        | flag      | If set, motorways are not removed before the visualization step. | -               | -          |
+
+* Important classes and methods 
+In the previous, we explained how the class =Main.java= could be used to
+run the tool. In this section we will explain the basic structure of
+the tool by presenting the most important classes and functions.
+** IsochroneCreator
+   The class =isochrone.IsochroneCreator.java= makes up the heart of the
+   tool, combining all steps needed for creating a travel-time map
+   with multiple time-zones. On initialization, all relevant data is
+   loaded and the preprocessing step, must importantly the
+   planarization step, is performed.  The method
+   =createIsochrone(startid, starttime, time, bufferTime, fatory)= can
+   then be called repeatedly to create time-zones for different
+   starting locations and travel-times.  To check the results, the
+   method =validateResult(timezone, coloredGraph)= can be used to check
+   if the time-zone correctly covers all reachable points of the road
+   network. This is done by an extensive point-in-polygon-search.  In
+   the following, we will explain what exactly is done in the method
+   =createIsochrone=.
+** MultiModalRouter
+   The class =graph.routing.MultiModalRouter= performs Step 1 of the
+   creation of isochrones as explained in the Introduction of our
+   paper, the calculation of the reachable part of the road network.
+   On creation, this class combines the road data with the public
+   transportation data to one routing graph. The method =route(startid,
+   starttime, time, buffertime, stopwatch)= then performs a query,
+   storing the result in a colored graph.
+** Planarizer
+   The class =graph.planarizer.Planarizer= performs the planarization
+   step of the road graph.
+** NodeInserter
+   The class =graph.planarizer.NodeInserter= is used to insert the /port/
+   nodes into the graph: the =MultiModalRouter= colors all nodes of the
+   original road graph. In general, upon reaching these nodes, some
+   travel time is left. The =NodeInserter= splits /gate/ arcs to insert
+   precise port nodes.
+** FaceIdentifier
+   The class =isochrone.FaceIdentifier= is used to identify the outer
+   faces of colored components. These are the faces where the grid is
+   calculated on to create the octilinear polygons.
+** IsoFace
+   An =isochrone.IsoFace= represents a single face of the planar graph
+   and is used to calculate the visualization grid. Each visualization
+   type needs a class extending the =IsoFace= which defines how the grid
+   is created.
+** IsoMap
+   The =isochrone.IsoMap= is used to join all the =IsoFace= objects of a
+   component to create a time-zone. This class contains the method
+   =route(coloredGraph, factory, stopwatch)= which calculates the
+   minimum-bend path to enclose a component.
+
+This list of classes and methods gives only a small overview over the
+most important functionalities of the tool. For a better understanding
+on how the tool works, refer to our publication.
+
+* Data
+The data contained in this prototype example is from two sources: 
+- road data :: the data of the road network is retrieved from [[https://download.geofabrik.de/europe/germany.html][Geofabrik.de]] and consists of [[https://www.openstreetmap.org][OpenStreetMap (OSM)]] data.  
+- public transportation data :: the data of the public transportation network is taken from [[https://www.vrs.de/fahren/fahrplanauskunft/opendata-/-openservice][vrs.de]] and contains data in [[http://gtfs.org/][GTFS]] format. Additionally, we extended this data by including ferry connections over the river Rhine. For this we used schedule data as presented on the individual webpages of the operator. In case no such schedule was given, we assumed regular trips every 15 minutes during operating hours.
+
+We cropped both data sources, so the given data only represents a subset of the original dataset.
+
+** Datasets
+This demo includes three datasets of different extend:
+- 1) Cologne-Bonn :: A dataset of the metropolitan area of Cologne and Bonn. The dataset consists of the [[file:./data/01_roadCologneBonn/KoelnBonnLinux.shp][road shape file]] and the [[file:./data/01_gtfsCologneBonn][gtfs directory]]. To use this dataset, a minimum RAM of 16 GB is recommended.
+- 2) Bonn :: A dataset of the city of Bonn. The dataset consists of the [[file:./data/02_roadBonn/bonnUTM.shp][road shape file]] and the [[file:./data/02_gtfsBonn][gtfs directory]]. To use this dataset, a minimum RAM of 8 GB is recommended. 
+- 3) Bornheim :: A dataset of the small city of Bornheim, situated between Cologne and Bonn. The dataset consists of the [[file:./data/03_roadBornheim/BornheimUTM.shp][road shape file]] and the [[file:./data/03_gtfsBornheim][gtfs directory]]. To use this dataset, a minimum RAM of 6 GB is recommended. 
+
+** Rendered examples
+In addition to the source code, we included four rendered examples of travel-time maps in /pdf/ and /png/ format; see [[file:./example_maps/]]. These maps are created for three timezones of temporal extend 10, 20 and 30 minutes, starting from 4 different starting locations in the experimental region.
+To enhance the visualizsation, the clipping extension has been applied to the map of [[file:./example_maps/Porz.png][Porz]] and [[file:./example_maps/Westhoven.png][Westhoven]]. No other extension have been used.
