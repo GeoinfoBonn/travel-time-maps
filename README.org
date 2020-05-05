@@ -18,6 +18,9 @@ In this document we will explain the basic features of our prototype
    software. If you encounter any bugs or have feedback on the
    implementation feel free to contact me using [[mailto:forsch@igg.uni-bonn.de][E-Mail]].
 
+#+CAPTION: Example output for Cologne-Westhoven
+[[./fig/Westhoven.png]]
+
 * Using the code
 ** Setup
 The code is written in Java and structured into four *Project Jigsaw*
@@ -157,19 +160,6 @@ This list of classes and methods gives only a small overview over the
 most important functionalities of the tool. For a better understanding
 on how the tool works, refer to our publication.
 
-* Data
-The data contained in this prototype example is from two sources: 
-- road data :: the data of the road network is retrieved from [[https://download.geofabrik.de/europe/germany.html][Geofabrik.de]] and consists of [[https://www.openstreetmap.org][OpenStreetMap (OSM)]] data.  
-- public transportation data :: the data of the public transportation network is taken from [[https://www.vrs.de/fahren/fahrplanauskunft/opendata-/-openservice][vrs.de]] and contains data in [[http://gtfs.org/][GTFS]] format. Additionally, we extended this data by including ferry connections over the river Rhine. For this we used schedule data as presented on the individual webpages of the operator. In case no such schedule was given, we assumed regular trips every 15 minutes during operating hours.
-
-We cropped both data sources, so the given data only represents a subset of the original dataset.
-
-** Datasets
-This demo includes three datasets of different extend:
-- 1) Cologne-Bonn :: A dataset of the metropolitan area of Cologne and Bonn. The dataset consists of the [[file:./data/01_roadCologneBonn/KoelnBonnLinux.shp][road shape file]] and the [[file:./data/01_gtfsCologneBonn][gtfs directory]]. To use this dataset, a minimum RAM of 16 GB is recommended.
-- 2) Bonn :: A dataset of the city of Bonn. The dataset consists of the [[file:./data/02_roadBonn/bonnUTM.shp][road shape file]] and the [[file:./data/02_gtfsBonn][gtfs directory]]. To use this dataset, a minimum RAM of 8 GB is recommended. 
-- 3) Bornheim :: A dataset of the small city of Bornheim, situated between Cologne and Bonn. The dataset consists of the [[file:./data/03_roadBornheim/BornheimUTM.shp][road shape file]] and the [[file:./data/03_gtfsBornheim][gtfs directory]]. To use this dataset, a minimum RAM of 6 GB is recommended. 
-
 ** Rendered examples
-In addition to the source code, we included four rendered examples of travel-time maps in /pdf/ and /png/ format; see [[file:./example_maps/]]. These maps are created for three timezones of temporal extend 10, 20 and 30 minutes, starting from 4 different starting locations in the experimental region.
-To enhance the visualizsation, the clipping extension has been applied to the map of [[file:./example_maps/Porz.png][Porz]] and [[file:./example_maps/Westhoven.png][Westhoven]]. No other extension have been used.
+In addition to the source code, we included four rendered examples of travel-time maps in /pdf/ and /png/ format; see [[file:./fig/]]. These maps are created for three timezones of temporal extend 10, 20 and 30 minutes, starting from 4 different starting locations in the experimental region.
+To enhance the visualizsation, the clipping extension has been applied to the map of [[file:fig/Porz.png][Porz]] and [[file:fig/Westhoven.png][Westhoven]]. No other extension have been used.
