@@ -36,6 +36,13 @@ modules:
 To compile these classes, please refer to the [[https://openjdk.java.net/projects/jigsaw/][Project Jigsaw webpage]].
 Alternatively, a pre-compiled jar-file is included in the documents.
 
+** Dependencies
+The code makes use of external libraries. To use the code, you need to include the following libraries as =.jar=-files:
+- [[https://locationtech.github.io/jts/][JTS]], for geometric calculations
+- [[http://www.jdom.org/][JDOM]], for exporting to KML
+- [[https://simondlevy.academic.wlu.edu/software/kd/][KD]], for kd-trees
+- [[][JUMP core]]
+
 ** Running the code
 The source code contains the class =main.Main.java= which serves as the
 main class for running the code. The behavior of the program is
