@@ -11,7 +11,7 @@ import graph.generic.DiGraph.DiGraphArc;
 import graph.generic.DiGraph.DiGraphNode;
 import ipeio.api.IpeDrawable;
 import ipeio.api.IpeTransformation;
-import util.geometry.Envelope;
+import ipeio.geometry.Envelope;
 
 /**
  * Wrapper for DiGraph (including SuperGraph) to be used by the IpeWriter to

@@ -13,8 +13,8 @@ import graph.types.Colored;
 import graph.types.ColoredNode;
 import ipeio.api.IpeDrawable;
 import ipeio.api.IpeTransformation;
+import ipeio.geometry.Envelope;
 import main.AbstractMain;
-import util.geometry.Envelope;
 
 public class IpeColoredGraph extends IpeDrawable {
 
