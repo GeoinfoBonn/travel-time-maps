@@ -19,7 +19,12 @@ In this document we will explain the basic features of our prototype
    implementation feel free to contact me using [[mailto:forsch@igg.uni-bonn.de][E-Mail]].
 
 #+CAPTION: Example output for Cologne-Westhoven
+#+ATTR_ORG: :width 100
 [[./fig/Westhoven.png]]
+
+#+CAPTION: Example output for Siegburg
+#+ATTR_ORG: :width 100
+[[./fig/Siegburg.png]]
 
 * Using the code
 ** Setup
