@@ -1,0 +1,3 @@
+[submodule "de.unibonn.geoinfo.ipeio"]
+	path = de.unibonn.geoinfo.ipeio
+	url = https://github.com/GeoinfoBonn/de.unibonn.geoinfo.ipeio
